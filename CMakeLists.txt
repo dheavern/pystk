@@ -23,7 +23,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 option(SERVER_ONLY "Create a server only (i.e. no graphics or sound)" OFF)
-option(CHECK_ASSETS "Check if assets are installed in ../stk-assets" ON)
 option(USE_SYSTEM_ANGELSCRIPT "Use system angelscript instead of built-in angelscript. If you enable this option, make sure to use a compatible version." OFF)
 
 set(STK_SOURCE_DIR "src")
@@ -259,28 +258,3 @@ if(NOT IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data)
   message( FATAL_ERROR "${CMAKE_CURRENT_SOURCE_DIR}/data folder doesn't exist" )
 endif()
 
-# ==== Checking if stk-assets folder exists ====
-if(CHECK_ASSETS)
-  if((IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/karts) AND
-       (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/library) AND
-       (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/music) AND
-       (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/sfx) AND
-       (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/textures) AND
-       (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/tracks))
-    message(STATUS "Assets found in data directory")
-  elseif(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/stk-assets)
-    set(STK_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stk-assets/)
-    message(STATUS "Assets found")
-  elseif(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../stk-assets)
-    set(STK_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stk-assets/)
-    message(STATUS "Assets found")
-  elseif(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../supertuxkart-assets)
-    set(STK_ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../supertuxkart-assets/)
-    message(STATUS "Assets found")
-  else()
-    set (CUR_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-    get_filename_component(PARENT_DIR ${CUR_DIR} PATH)
-    message( FATAL_ERROR "${PARENT_DIR}/stk-assets folder doesn't exist. "
-      "Please download the stk-assets, or disable this test with -DCHECK_ASSETS=off." )
-  endif()
-endif()

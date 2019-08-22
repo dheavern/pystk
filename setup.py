@@ -125,7 +125,7 @@ class BuildAndCopyData(build_py):
         except FileNotFoundError:
             pass
         data_files = []
-        for base in ['data/', 'stk-assets/']:
+        for base in ['data/']: # , 'stk-assets/'
             base = os.path.join(this_directory, base)
             for root, dirs, files in os.walk(base):
                 target_dir = os.path.join(self.build_lib, self.packages[0], 'data', root[len(base):])
@@ -149,8 +149,8 @@ def ignore(base, entries):
 
 
 setup(
-    name='pystk',
-    version='1.0',
+    name='PySuperTuxKart',
+    version='1.0a0',
     author='Philipp Krähenbühl',
     author_email='philkr@utexas.edu',
     description='Python SuperTuxKart inferface',

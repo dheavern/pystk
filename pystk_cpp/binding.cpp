@@ -1,3 +1,4 @@
+#include <pybind11/eval.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -18,6 +19,44 @@ using namespace pybind11::literals;
 
 PYBIND11_MAKE_OPAQUE(std::vector<PySTKPlayerConfig>);
 
+void fetch_assets(py::str module_path) {
+	py::exec(R"(
+import io, requests, zipfile, shutil, os, sys
+ASSET_URL = 'https://sourceforge.net/projects/supertuxkart/files/stk-assets-mobile/git/full-hd.zip'
+assets_dir = os.path.join(module_path, 'stk-assets')
+if not os.path.exists(assets_dir):
+	r = requests.get(ASSET_URL, stream=True)
+	total_length = r.headers.get('content-length')
+	content = b''
+	if total_length is None:
+		content = r.content
+	else:
+		dl = 0
+		total_length = int(total_length)
+		print("Fetching assets")
+		for data in r.iter_content(1 << 20):
+			dl += len(data)
+			content += data
+			done = int(50 * dl / total_length)
+			sys.stdout.write("\r[%s%s] %3d%%" % ('=' * done, ' ' * (50 - done), 100 * dl / total_length))
+		print()
+	z = zipfile.ZipFile(io.BytesIO(content))
+	try:
+		shutil.rmtree(assets_dir)
+	except FileNotFoundError:
+		pass
+	z.extractall(assets_dir))", py::globals(), py::dict("module_path"_a = module_path));
+}
+void fetch_and_init(const PySTKGraphicsConfig & config) {
+	auto sys = py::module::import("sys"), os = py::module::import("os");
+	auto path = os.attr("path"), environ = os.attr("environ");
+	auto module_path = path.attr("dirname")(path.attr("abspath")(sys.attr("modules")["pystk"].attr("__file__")));
+	// Give supertuxkart a hint where the assets are
+	environ["SUPERTUXKART_DATADIR"] = module_path;
+	// Fetch the assets of they don't already exist
+	fetch_assets(module_path);
+	PySTKRace::init(config);
+}
 
 PYBIND11_MODULE(pystk, m) {
 	m.doc() = "Python SuperTuxKart interface";
@@ -183,14 +222,14 @@ PYBIND11_MODULE(pystk, m) {
 	m.def("list_karts", &PySTKRace::listKarts, "Return a list of karts to play as (possible values for PlayerConfig.kart");
 	
 	// Initialize SuperTuxKart
-	m.def("init", &PySTKRace::init, py::arg("config"), "Initialize Python SuperTuxKart. Only call this function once per process. Calling it twice will cause a crash.");
+	m.def("init", &fetch_and_init, py::arg("config"), "Initialize Python SuperTuxKart. Only call this function once per process. Calling it twice will cause a crash.");
 	m.def("clean", &PySTKRace::clean, "Free Python SuperTuxKart, call this once at exit (optional). Will be called atexit otherwise.");
 	
 	auto atexit = py::module::import("atexit");
-		atexit.attr("register")(py::cpp_function([]() {
-			// A bit ugly
-			PySTKRace::running_kart = nullptr;
-			PySTKRace::clean();
-		}));
+	atexit.attr("register")(py::cpp_function([]() {
+		// A bit ugly
+		PySTKRace::running_kart = nullptr;
+		PySTKRace::clean();
+	}));
 }
 
